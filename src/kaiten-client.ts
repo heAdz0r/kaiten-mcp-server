@@ -209,8 +209,10 @@ export interface UpdateCardParams {
   title?: string;
   description?: string;
   state?: number;
+  board_id?: number;
   column_id?: number;
   lane_id?: number;
+  sort_order?: number;
   type_id?: number;
   size?: number;
   asap?: boolean;

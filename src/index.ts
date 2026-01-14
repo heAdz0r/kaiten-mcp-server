@@ -3038,8 +3038,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (validatedArgs.title) params.title = validatedArgs.title;
         if (validatedArgs.description !== undefined) params.description = validatedArgs.description;
         if (validatedArgs.state !== undefined) params.state = validatedArgs.state;
+        if (validatedArgs.board_id) params.board_id = validatedArgs.board_id;
         if (validatedArgs.column_id) params.column_id = validatedArgs.column_id;
         if (validatedArgs.lane_id) params.lane_id = validatedArgs.lane_id;
+        if (validatedArgs.sort_order !== undefined) params.sort_order = validatedArgs.sort_order;
         if (validatedArgs.type_id) params.type_id = validatedArgs.type_id;
         if (validatedArgs.size !== undefined) params.size = validatedArgs.size;
         if (validatedArgs.asap !== undefined) params.asap = validatedArgs.asap;
