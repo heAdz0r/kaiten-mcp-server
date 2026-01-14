@@ -727,7 +727,7 @@ export class KaitenClient {
   async getCardChecklists(cardId: number, signal?: AbortSignal): Promise<KaitenChecklist[]> {
     return this.queuedRequest(async () => {
       // The checklists are included in the card object
-      const card = await this.client.get(`/cards/${cardId}`, { signal });
+      const card = await this.client.get(`/cards/${cardId}?fillPropertyValues=true`, { signal });
       return (card.data as any).checklists || [];
     }, signal);
   }
