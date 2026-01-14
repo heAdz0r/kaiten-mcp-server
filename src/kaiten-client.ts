@@ -82,6 +82,45 @@ export interface KaitenTag {
   name: string;
 }
 
+// ADDED: Full tag with ID and color
+export interface KaitenTagFull {
+  id: number;
+  name: string;
+  color?: number;
+  space_id?: number;
+}
+
+// ADDED: Checklist item
+export interface KaitenChecklistItem {
+  id: number;
+  text: string;
+  checked: boolean;
+  sort_order?: number;
+  checklist_id?: number;
+  checker_id?: number;
+  user_id?: number;
+  due_date?: string;
+}
+
+// ADDED: Checklist
+export interface KaitenChecklist {
+  id: number;
+  name: string;
+  card_id?: number;
+  items?: KaitenChecklistItem[];
+  sort_order?: number;
+}
+
+// ADDED: Board property (custom field configuration)
+export interface KaitenBoardProperty {
+  id: number;
+  name: string;
+  type: string; // 'number', 'string', 'select', etc.
+  board_id?: number;
+  required?: boolean;
+  options?: any[]; // for select type
+}
+
 export interface KaitenBlocker {
   reason?: string;
   created?: string;
@@ -160,6 +199,8 @@ export interface CreateCardParams {
   asap?: boolean;
   owner_id?: number;
   due_date?: string;
+  tags?: string[];
+  properties?: Record<string, any>;
   custom_fields?: Record<string, any>;
   idempotency_key?: string;
 }
@@ -175,6 +216,8 @@ export interface UpdateCardParams {
   asap?: boolean;
   owner_id?: number;
   due_date?: string;
+  tags?: string[];
+  properties?: Record<string, any>;
   custom_fields?: Record<string, any>;
   idempotency_key?: string;
 }
@@ -669,6 +712,141 @@ export class KaitenClient {
         params: queryParams,
         signal
       });
+      return response.data;
+    }, signal);
+  }
+
+  // ============================================
+  // CHECKLIST OPERATIONS (ADDED)
+  // ============================================
+
+  // Get all checklists for a card
+  async getCardChecklists(cardId: number, signal?: AbortSignal): Promise<KaitenChecklist[]> {
+    return this.queuedRequest(async () => {
+      const response = await this.client.get(`/cards/${cardId}/checklists`, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Create a new checklist on a card
+  async createChecklist(cardId: number, name: string, idempotencyKey?: string, signal?: AbortSignal): Promise<KaitenChecklist> {
+    return this.queuedRequest(async () => {
+      const key = idempotencyKey || this.generateIdempotencyKey();
+      const headers = { 'Idempotency-Key': key };
+      const response = await this.client.post(`/cards/${cardId}/checklists`, { name }, { headers, signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Update a checklist
+  async updateChecklist(cardId: number, checklistId: number, name: string, signal?: AbortSignal): Promise<KaitenChecklist> {
+    return this.queuedRequest(async () => {
+      const response = await this.client.patch(`/cards/${cardId}/checklists/${checklistId}`, { name }, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Delete a checklist
+  async deleteChecklist(cardId: number, checklistId: number, signal?: AbortSignal): Promise<void> {
+    return this.queuedRequest(async () => {
+      await this.client.delete(`/cards/${cardId}/checklists/${checklistId}`, { signal });
+    }, signal);
+  }
+
+  // Create a checklist item - FIXED: URL is /checklists/{id}/items, not /cards/.../checklists/.../items
+  async createChecklistItem(
+    checklistId: number,
+    text: string,
+    checked?: boolean,
+    sortOrder?: number,
+    idempotencyKey?: string,
+    signal?: AbortSignal
+  ): Promise<KaitenChecklistItem> {
+    return this.queuedRequest(async () => {
+      const key = idempotencyKey || this.generateIdempotencyKey();
+      const headers = { 'Idempotency-Key': key };
+      const body: any = { text };
+      if (checked !== undefined) body.checked = checked;
+      if (sortOrder !== undefined) body.sort_order = sortOrder;
+      // FIXED: Correct endpoint from Python working code
+      const response = await this.client.post(`/checklists/${checklistId}/items`, body, { headers, signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Update a checklist item - FIXED: URL is /checklists/{id}/items/{item_id}
+  async updateChecklistItem(
+    checklistId: number,
+    itemId: number,
+    params: { text?: string; checked?: boolean; sort_order?: number },
+    signal?: AbortSignal
+  ): Promise<KaitenChecklistItem> {
+    return this.queuedRequest(async () => {
+      // FIXED: Correct endpoint pattern
+      const response = await this.client.patch(`/checklists/${checklistId}/items/${itemId}`, params, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Delete a checklist item - FIXED: URL is /checklists/{id}/items/{item_id}
+  async deleteChecklistItem(checklistId: number, itemId: number, signal?: AbortSignal): Promise<void> {
+    return this.queuedRequest(async () => {
+      // FIXED: Correct endpoint pattern
+      await this.client.delete(`/checklists/${checklistId}/items/${itemId}`, { signal });
+    }, signal);
+  }
+
+  // ============================================
+  // TAG OPERATIONS (ADDED)
+  // ============================================
+
+  // Get all tags in a space
+  async getSpaceTags(spaceId: number, signal?: AbortSignal): Promise<KaitenTagFull[]> {
+    return this.queuedRequest(async () => {
+      const response = await this.client.get(`/spaces/${spaceId}/tags`, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Add a tag to a card by tag_id
+  async addTagToCard(cardId: number, tagId: number, signal?: AbortSignal): Promise<void> {
+    return this.queuedRequest(async () => {
+      await this.client.post(`/cards/${cardId}/tags`, { tag_id: tagId }, { signal });
+    }, signal);
+  }
+
+  // Remove a tag from a card
+  async removeTagFromCard(cardId: number, tagId: number, signal?: AbortSignal): Promise<void> {
+    return this.queuedRequest(async () => {
+      await this.client.delete(`/cards/${cardId}/tags/${tagId}`, { signal });
+    }, signal);
+  }
+
+  // ADDED: Update card tags by names (strings) - tags are auto-created if don't exist
+  async updateCardTags(cardId: number, tagNames: string[], signal?: AbortSignal): Promise<KaitenCard> {
+    return this.queuedRequest(async () => {
+      // Kaiten accepts tags as array of strings when updating card
+      const response = await this.client.patch(`/cards/${cardId}`, { tags: tagNames }, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // ============================================
+  // BOARD PROPERTIES OPERATIONS (ADDED)
+  // ============================================
+
+  // Get board properties (custom fields configuration)
+  async getBoardProperties(boardId: number, signal?: AbortSignal): Promise<KaitenBoardProperty[]> {
+    return this.queuedRequest(async () => {
+      const response = await this.client.get(`/boards/${boardId}/properties`, { signal });
+      return response.data;
+    }, signal);
+  }
+
+  // Update card properties (custom fields)
+  async updateCardProperties(cardId: number, properties: Record<string, any>, signal?: AbortSignal): Promise<KaitenCard> {
+    return this.queuedRequest(async () => {
+      const response = await this.client.patch(`/cards/${cardId}`, { properties }, { signal });
       return response.data;
     }, signal);
   }

@@ -1,5 +1,47 @@
 # Changelog
 
+## [2.5.0] - 2026-01-14
+
+### ✨ Tags & Properties Release
+
+### Added
+- **Tags Support**: Full support for creating and updating cards with tags
+  - `kaiten_create_card`: Added `tags` parameter (array of strings)
+  - `kaiten_update_card`: Added `tags` parameter (array of strings)
+  - `kaiten_update_card_tags`: Dedicated tool for managing tags
+  - `kaiten_get_space_tags`: Tool to list available tags in a space
+  - `kaiten_add_tag_to_card` / `kaiten_remove_tag_from_card`: Granular tag management tools
+- **Custom Properties (Story Points)**: Support for custom fields
+  - `kaiten_create_card`: Added `properties` parameter (object)
+  - `kaiten_update_card`: Added `properties` parameter (object)
+  - `kaiten_update_card_properties`: Dedicated tool for updating properties
+  - `kaiten_get_board_properties`: Tool to discover property IDs (needed for Story Points)
+- **Checklists Support**: Full suite of tools for checklists
+  - `kaiten_get_card_checklists`: Get checklists for a card
+  - `kaiten_create_checklist`: Create new checklist
+  - `kaiten_update_checklist`: Rename checklist
+  - `kaiten_delete_checklist`: Delete checklist
+  - `kaiten_create_checklist_item`: Add item to checklist
+  - `kaiten_update_checklist_item`: Update item (text/checked/position)
+  - `kaiten_delete_checklist_item`: Delete item
+
+### Changed
+- **kaiten_create_card**: Now accepts `tags: string[]` and `properties: Record<string, any>`
+- **kaiten_update_card**: Now accepts `tags: string[]` and `properties: Record<string, any>`
+- **Updated Schemas**: Extended Zod schemas to validate new parameters
+- **Tool Count**: Increased from 26 to 37 tools (11 new tools added)
+
+### Improved
+- **Developer Experience**:
+  - Easier to set Story Points (via properties)
+  - Easier to organize cards with tags during creation
+  - Complete checklist management workflow
+
+### Technical Details
+- **New Interfaces**: `KaitenTagFull`, `KaitenChecklist`, `KaitenChecklistItem`, `KaitenBoardProperty`
+- **API Endpoints**: Integrated `/tags`, `/properties`, `/checklists` endpoints
+- **Backward Compatible**: All new parameters are optional
+
 ## [2.4.0] - 2025-10-22
 
 ### 🎛️ Token Economy & UX Release

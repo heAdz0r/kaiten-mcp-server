@@ -117,16 +117,35 @@ npm run build
 Покажи список пространств Kaiten
 ```
 
-## Доступные инструменты (26 tools)
+## Доступные инструменты (37 tools)
 
 ### Карточки
 - `kaiten_get_card` - Получить карточку по ID **[format: json/markdown]**
-- `kaiten_create_card` - Создать новую карточку
-- `kaiten_update_card` - Обновить карточку
+- `kaiten_create_card` - Создать новую карточку (с тегами и свойствами)
+- `kaiten_update_card` - Обновить карточку (включая теги и свойства)
 - `kaiten_delete_card` - Удалить карточку
 - `kaiten_search_cards` - Поиск карточек с фильтрами **[verbosity: minimal/normal/detailed]**
 - `kaiten_get_space_cards` - Получить карточки пространства **[verbosity]**
 - `kaiten_get_board_cards` - Получить карточки доски **[verbosity]**
+
+### Теги (Tags)
+- `kaiten_get_space_tags` - Получить доступные теги пространства
+- `kaiten_update_card_tags` - Обновить теги карточки (списком названий)
+- `kaiten_add_tag_to_card` - Добавить один тег по ID
+- `kaiten_remove_tag_from_card` - Удалить тег
+
+### Свойства и Story Points
+- `kaiten_get_board_properties` - Получить ID свойств доски (для Story Points и др.)
+- `kaiten_update_card_properties` - Обновить значения свойств
+
+### Чек-листы
+- `kaiten_get_card_checklists` - Получить чек-листы карточки
+- `kaiten_create_checklist` - Создать чек-лист
+- `kaiten_update_checklist` - Переименовать чек-лист
+- `kaiten_delete_checklist` - Удалить чек-лист
+- `kaiten_create_checklist_item` - Добавить пункт
+- `kaiten_update_checklist_item` - Обновить пункт
+- `kaiten_delete_checklist_item` - Удалить пункт
 
 ### Комментарии
 - `kaiten_get_card_comments` - Получить комментарии карточки
@@ -173,9 +192,31 @@ npm run build
 Обнови карточку 789: измени статус на 3
 ```
 
+### Теги и Story Points
+
 ```
-Добавь комментарий к карточке 789: "Работа завершена"
+Создай карточку "Feature X" с тегами ["backend", "api"] и Story Points = 5
 ```
+
+```
+Обнови карточку 123: добавь тег "hotfix"
+```
+
+```
+Установи Story Points = 8 для карточки 123 (предварительно узнай property_id через get_board_properties)
+```
+
+### Чек-листы
+
+```
+Создай чек-лист "Приемка" для карточки 123
+```
+
+```
+Добавь пункт "Проверить логи" в чек-лист 555
+```
+
+### Комментарии
 
 ### Verbosity Control - Экономия токенов
 

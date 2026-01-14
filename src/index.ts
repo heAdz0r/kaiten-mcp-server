@@ -49,6 +49,22 @@ import {
   ListTypesSchema,
   ListUsersSchema,
   SetLogLevelSchema,
+  // ADDED: Checklist schemas
+  GetCardChecklistsSchema,
+  CreateChecklistSchema,
+  UpdateChecklistSchema,
+  DeleteChecklistSchema,
+  CreateChecklistItemSchema,
+  UpdateChecklistItemSchema,
+  DeleteChecklistItemSchema,
+  // ADDED: Tag schemas
+  GetSpaceTagsSchema,
+  AddTagToCardSchema,
+  RemoveTagFromCardSchema,
+  UpdateCardTagsSchema,
+  // ADDED: Board properties schemas
+  GetBoardPropertiesSchema,
+  UpdateCardPropertiesSchema,
 } from './schemas.js';
 import {
   truncateResponse,
@@ -505,6 +521,15 @@ RELATED TOOLS:
           type: 'string',
           description: 'Due date (ISO format)',
         },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags to add to the card',
+        },
+        properties: {
+          type: 'object',
+          description: 'Custom properties (e.g., Story Points)',
+        },
       },
       required: ['title', 'board_id'],
     },
@@ -530,6 +555,8 @@ OPTIONAL PARAMETERS (at least one required):
 - asap (optional): Mark/unmark as urgent. Boolean true/false.
 - owner_id (optional): Reassign card. Get from kaiten_list_users(query="name"). Pass null to unassign.
 - due_date (optional): Set/update due date. ISO 8601 format: "2025-11-01T23:59:59Z". Pass empty string "" to clear.
+- tags (optional): Array of tags to replace existing tags.
+- properties (optional): Custom properties (e.g., Story Points) to update.
 - idempotency_key (optional): Unique key for safe retries. Auto-generated if omitted.
 
 RETURNS: Updated full card object as JSON with all current field values
@@ -681,6 +708,15 @@ RELATED TOOLS:
         due_date: {
           type: 'string',
           description: 'New due date (ISO)',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags to replace existing tags',
+        },
+        properties: {
+          type: 'object',
+          description: 'Custom properties to update (e.g., Story Points)',
         },
       },
       required: ['card_id'],
@@ -2373,6 +2409,274 @@ RELATED TOOLS:
       required: ['level'],
     },
   },
+  // ============================================
+  // CHECKLIST TOOLS (ADDED)
+  // ============================================
+  {
+    name: 'kaiten_get_card_checklists',
+    description: 'Get all checklists for a card with their items',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+      },
+      required: ['card_id'],
+    },
+  },
+  {
+    name: 'kaiten_create_checklist',
+    description: 'Create a new checklist on a card',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        name: {
+          type: 'string',
+          description: 'Checklist name',
+        },
+      },
+      required: ['card_id', 'name'],
+    },
+  },
+  {
+    name: 'kaiten_update_checklist',
+    description: 'Update a checklist name',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        checklist_id: {
+          type: 'number',
+          description: 'Checklist ID',
+        },
+        name: {
+          type: 'string',
+          description: 'New checklist name',
+        },
+      },
+      required: ['card_id', 'checklist_id', 'name'],
+    },
+  },
+  {
+    name: 'kaiten_delete_checklist',
+    description: 'Delete a checklist from a card',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        checklist_id: {
+          type: 'number',
+          description: 'Checklist ID',
+        },
+      },
+      required: ['card_id', 'checklist_id'],
+    },
+  },
+  {
+    name: 'kaiten_create_checklist_item',
+    description: 'Create a new item in a checklist',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        checklist_id: {
+          type: 'number',
+          description: 'Checklist ID',
+        },
+        text: {
+          type: 'string',
+          description: 'Item text (1-4096 chars)',
+        },
+        checked: {
+          type: 'boolean',
+          description: 'Initial checked state (default: false)',
+        },
+        sort_order: {
+          type: 'number',
+          description: 'Position in checklist',
+        },
+      },
+      required: ['card_id', 'checklist_id', 'text'],
+    },
+  },
+  {
+    name: 'kaiten_update_checklist_item',
+    description: 'Update a checklist item (text, checked state, position)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        checklist_id: {
+          type: 'number',
+          description: 'Checklist ID',
+        },
+        item_id: {
+          type: 'number',
+          description: 'Checklist item ID',
+        },
+        text: {
+          type: 'string',
+          description: 'New item text',
+        },
+        checked: {
+          type: 'boolean',
+          description: 'New checked state',
+        },
+        sort_order: {
+          type: 'number',
+          description: 'New position',
+        },
+      },
+      required: ['card_id', 'checklist_id', 'item_id'],
+    },
+  },
+  {
+    name: 'kaiten_delete_checklist_item',
+    description: 'Delete a checklist item',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        checklist_id: {
+          type: 'number',
+          description: 'Checklist ID',
+        },
+        item_id: {
+          type: 'number',
+          description: 'Checklist item ID',
+        },
+      },
+      required: ['card_id', 'checklist_id', 'item_id'],
+    },
+  },
+  // ============================================
+  // TAG TOOLS (ADDED)
+  // ============================================
+  {
+    name: 'kaiten_get_space_tags',
+    description: 'Get all available tags in a space',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        space_id: {
+          type: 'number',
+          description: 'Space ID',
+        },
+      },
+      required: ['space_id'],
+    },
+  },
+  {
+    name: 'kaiten_add_tag_to_card',
+    description: 'Add a tag to a card',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        tag_id: {
+          type: 'number',
+          description: 'Tag ID (get from kaiten_get_space_tags)',
+        },
+      },
+      required: ['card_id', 'tag_id'],
+    },
+  },
+  {
+    name: 'kaiten_remove_tag_from_card',
+    description: 'Remove a tag from a card',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        tag_id: {
+          type: 'number',
+          description: 'Tag ID to remove',
+        },
+      },
+      required: ['card_id', 'tag_id'],
+    },
+  },
+  {
+    name: 'kaiten_update_card_tags',
+    description: 'Update card tags by names (strings). Tags are auto-created if they don\'t exist. This is the preferred way to add tags to existing cards.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Array of tag names (strings). Example: ["Backend", "API", "P0"]',
+        },
+      },
+      required: ['card_id', 'tags'],
+    },
+  },
+  // ============================================
+  // BOARD PROPERTIES TOOLS (ADDED)
+  // ============================================
+  {
+    name: 'kaiten_get_board_properties',
+    description: 'Get custom properties (fields) configuration for a board. Returns property IDs needed for setting Story Points and other custom fields.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        board_id: {
+          type: 'number',
+          description: 'Board ID',
+        },
+      },
+      required: ['board_id'],
+    },
+  },
+  {
+    name: 'kaiten_update_card_properties',
+    description: 'Update custom properties (fields) on a card, e.g. Story Points. Use kaiten_get_board_properties first to get property IDs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        card_id: {
+          type: 'number',
+          description: 'Card ID',
+        },
+        properties: {
+          type: 'object',
+          description: 'Properties object with property IDs as keys, e.g. {"id_199642": 5} for Story Points = 5',
+        },
+      },
+      required: ['card_id', 'properties'],
+    },
+  },
 ];
 
 // ============================================
@@ -2714,6 +3018,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (validatedArgs.asap !== undefined) params.asap = validatedArgs.asap;
         if (validatedArgs.owner_id) params.owner_id = validatedArgs.owner_id;
         if (validatedArgs.due_date) params.due_date = validatedArgs.due_date;
+        if (validatedArgs.tags) params.tags = validatedArgs.tags;
+        if (validatedArgs.properties) params.properties = validatedArgs.properties;
 
         const card = await kaitenClient.createCard(params, signal);
         return {
@@ -2739,6 +3045,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (validatedArgs.asap !== undefined) params.asap = validatedArgs.asap;
         if (validatedArgs.owner_id) params.owner_id = validatedArgs.owner_id;
         if (validatedArgs.due_date) params.due_date = validatedArgs.due_date;
+        if (validatedArgs.tags) params.tags = validatedArgs.tags;
+        if (validatedArgs.properties) params.properties = validatedArgs.properties;
 
         const card = await kaitenClient.updateCard(validatedArgs.card_id, params, signal);
         return {
@@ -3365,6 +3673,237 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               text: JSON.stringify({
                 message: 'Logging configuration updated successfully',
                 config: logger.getConfig(),
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      // ============================================
+      // CHECKLIST HANDLERS (ADDED)
+      // ============================================
+
+      case 'kaiten_get_card_checklists': {
+        const validatedArgs = GetCardChecklistsSchema.parse(args);
+        const checklists = await kaitenClient.getCardChecklists(validatedArgs.card_id, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(checklists, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_create_checklist': {
+        const validatedArgs = CreateChecklistSchema.parse(args);
+        const checklist = await kaitenClient.createChecklist(
+          validatedArgs.card_id,
+          validatedArgs.name,
+          validatedArgs.idempotency_key,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(checklist, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_update_checklist': {
+        const validatedArgs = UpdateChecklistSchema.parse(args);
+        const checklist = await kaitenClient.updateChecklist(
+          validatedArgs.card_id,
+          validatedArgs.checklist_id,
+          validatedArgs.name,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(checklist, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_delete_checklist': {
+        const validatedArgs = DeleteChecklistSchema.parse(args);
+        await kaitenClient.deleteChecklist(
+          validatedArgs.card_id,
+          validatedArgs.checklist_id,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Checklist ${validatedArgs.checklist_id} deleted successfully`,
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_create_checklist_item': {
+        const validatedArgs = CreateChecklistItemSchema.parse(args);
+        // FIXED: card_id removed - API uses /checklists/{id}/items
+        const item = await kaitenClient.createChecklistItem(
+          validatedArgs.checklist_id,
+          validatedArgs.text,
+          validatedArgs.checked,
+          validatedArgs.sort_order,
+          validatedArgs.idempotency_key,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(item, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_update_checklist_item': {
+        const validatedArgs = UpdateChecklistItemSchema.parse(args);
+        const params: any = {};
+        if (validatedArgs.text !== undefined) params.text = validatedArgs.text;
+        if (validatedArgs.checked !== undefined) params.checked = validatedArgs.checked;
+        if (validatedArgs.sort_order !== undefined) params.sort_order = validatedArgs.sort_order;
+
+        // FIXED: card_id removed - API uses /checklists/{id}/items/{item_id}
+        const item = await kaitenClient.updateChecklistItem(
+          validatedArgs.checklist_id,
+          validatedArgs.item_id,
+          params,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(item, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_delete_checklist_item': {
+        const validatedArgs = DeleteChecklistItemSchema.parse(args);
+        // FIXED: card_id removed - API uses /checklists/{id}/items/{item_id}
+        await kaitenClient.deleteChecklistItem(
+          validatedArgs.checklist_id,
+          validatedArgs.item_id,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Checklist item ${validatedArgs.item_id} deleted successfully`,
+            },
+          ],
+        };
+      }
+
+      // ============================================
+      // TAG HANDLERS (ADDED)
+      // ============================================
+
+      case 'kaiten_get_space_tags': {
+        const validatedArgs = GetSpaceTagsSchema.parse(args);
+        const tags = await kaitenClient.getSpaceTags(validatedArgs.space_id, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(tags, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_add_tag_to_card': {
+        const validatedArgs = AddTagToCardSchema.parse(args);
+        await kaitenClient.addTagToCard(validatedArgs.card_id, validatedArgs.tag_id, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Tag ${validatedArgs.tag_id} added to card ${validatedArgs.card_id} successfully`,
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_remove_tag_from_card': {
+        const validatedArgs = RemoveTagFromCardSchema.parse(args);
+        await kaitenClient.removeTagFromCard(validatedArgs.card_id, validatedArgs.tag_id, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Tag ${validatedArgs.tag_id} removed from card ${validatedArgs.card_id} successfully`,
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_update_card_tags': {
+        const validatedArgs = UpdateCardTagsSchema.parse(args);
+        const card = await kaitenClient.updateCardTags(validatedArgs.card_id, validatedArgs.tags, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                message: 'Tags updated successfully',
+                card_id: card.id,
+                tags: card.tags
+              }, null, 2),
+            },
+          ],
+        };
+      }
+
+      // ============================================
+      // BOARD PROPERTIES HANDLERS (ADDED)
+      // ============================================
+
+      case 'kaiten_get_board_properties': {
+        const validatedArgs = GetBoardPropertiesSchema.parse(args);
+        const properties = await kaitenClient.getBoardProperties(validatedArgs.board_id, signal);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(properties, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'kaiten_update_card_properties': {
+        const validatedArgs = UpdateCardPropertiesSchema.parse(args);
+        const card = await kaitenClient.updateCardProperties(
+          validatedArgs.card_id,
+          validatedArgs.properties,
+          signal
+        );
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({
+                message: 'Properties updated successfully',
+                card_id: card.id,
+                properties: card.properties
               }, null, 2),
             },
           ],

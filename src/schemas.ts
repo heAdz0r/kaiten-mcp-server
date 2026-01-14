@@ -43,10 +43,12 @@ export const CreateCardSchema = z.object({
   lane_id: z.number().positive().int().optional().describe('The ID of the lane (optional)'),
   description: z.string().optional().describe('The description of the card (optional)'),
   type_id: z.number().positive().int().optional().describe('The type ID of the card (optional)'),
-  size: z.number().min(0).optional().describe('The size/estimate of the card (optional)'),
+  size: z.number().min(0).optional().describe('The size/estimate of the card (optional, built-in size field)'),
   asap: z.boolean().optional().describe('Mark as ASAP (optional)'),
   owner_id: z.number().positive().int().optional().describe('The ID of the card owner (optional)'),
   due_date: z.string().optional().describe('Due date in ISO format (optional)'),
+  tags: z.array(z.string()).optional().describe('Array of tags to add to the card (optional)'),
+  properties: z.record(z.any()).optional().describe('Custom properties/fields (e.g. Story Points) keyed by property ID (optional)'),
   idempotency_key: IdempotencyKeySchema,
 }).strict();
 
@@ -62,6 +64,8 @@ export const UpdateCardSchema = z.object({
   asap: z.boolean().optional().describe('Mark as ASAP (optional)'),
   owner_id: z.number().positive().int().optional().describe('The new owner ID (optional)'),
   due_date: z.string().optional().describe('New due date in ISO format (optional)'),
+  tags: z.array(z.string()).optional().describe('Array of tags to replace existing tags (optional)'),
+  properties: z.record(z.any()).optional().describe('Custom properties/fields (e.g. Story Points) to update (optional)'),
   idempotency_key: IdempotencyKeySchema,
 }).strict();
 
@@ -218,6 +222,95 @@ export const ListUsersSchema = z.object({
 // GetCurrentUser has no parameters, so no schema needed
 
 // ============================================
+// CHECKLIST SCHEMAS (ADDED)
+// ============================================
+
+export const GetCardChecklistsSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+}).strict();
+
+export const CreateChecklistSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  name: z.string().min(1).max(500).describe('The name of the checklist'),
+  idempotency_key: IdempotencyKeySchema,
+}).strict();
+
+export const UpdateChecklistSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
+  name: z.string().min(1).max(500).describe('The new name of the checklist'),
+}).strict();
+
+export const DeleteChecklistSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  checklist_id: z.number().positive().int().describe('The ID of the checklist to delete'),
+}).strict();
+
+// FIXED: Checklist item endpoints don't require card_id - use /checklists/{id}/items
+export const CreateChecklistItemSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card (for reference only, not used in API call)'),
+  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
+  text: z.string().min(1).max(4096).describe('The text content of the checklist item'),
+  checked: z.boolean().optional().describe('Initial checked state (default: false)'),
+  sort_order: z.number().optional().describe('Position in the checklist'),
+  idempotency_key: IdempotencyKeySchema,
+}).strict();
+
+// FIXED: card_id removed from API call - use /checklists/{id}/items/{item_id}
+export const UpdateChecklistItemSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card (for reference only, not used in API call)'),
+  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
+  item_id: z.number().positive().int().describe('The ID of the checklist item'),
+  text: z.string().min(1).max(4096).optional().describe('New text content'),
+  checked: z.boolean().optional().describe('New checked state'),
+  sort_order: z.number().optional().describe('New position'),
+}).strict();
+
+// FIXED: card_id removed from API call
+export const DeleteChecklistItemSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card (for reference only, not used in API call)'),
+  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
+  item_id: z.number().positive().int().describe('The ID of the checklist item to delete'),
+}).strict();
+
+// ============================================
+// TAG SCHEMAS (ADDED)
+// ============================================
+
+export const GetSpaceTagsSchema = z.object({
+  space_id: z.number().positive().int().describe('The ID of the space'),
+}).strict();
+
+export const AddTagToCardSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  tag_id: z.number().positive().int().describe('The ID of the tag to add'),
+}).strict();
+
+export const RemoveTagFromCardSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  tag_id: z.number().positive().int().describe('The ID of the tag to remove'),
+}).strict();
+
+// ADDED: Update card tags by names (auto-creates if don't exist)
+export const UpdateCardTagsSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  tags: z.array(z.string().min(1)).describe('Array of tag names (strings). Tags are auto-created if they don\'t exist.'),
+}).strict();
+
+// ============================================
+// BOARD PROPERTIES SCHEMAS (ADDED)
+// ============================================
+
+export const GetBoardPropertiesSchema = z.object({
+  board_id: z.number().positive().int().describe('The ID of the board'),
+}).strict();
+
+export const UpdateCardPropertiesSchema = z.object({
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  properties: z.record(z.any()).describe('Properties object with property IDs as keys, e.g. {"id_199642": 5} for Story Points'),
+}).strict();
+
+// ============================================
 // LOGGING SCHEMAS
 // ============================================
 
@@ -252,3 +345,22 @@ export type ListLanesArgs = z.infer<typeof ListLanesSchema>;
 export type ListTypesArgs = z.infer<typeof ListTypesSchema>;
 export type ListUsersArgs = z.infer<typeof ListUsersSchema>;
 export type SetLogLevelArgs = z.infer<typeof SetLogLevelSchema>;
+
+// ADDED: Checklist types
+export type GetCardChecklistsArgs = z.infer<typeof GetCardChecklistsSchema>;
+export type CreateChecklistArgs = z.infer<typeof CreateChecklistSchema>;
+export type UpdateChecklistArgs = z.infer<typeof UpdateChecklistSchema>;
+export type DeleteChecklistArgs = z.infer<typeof DeleteChecklistSchema>;
+export type CreateChecklistItemArgs = z.infer<typeof CreateChecklistItemSchema>;
+export type UpdateChecklistItemArgs = z.infer<typeof UpdateChecklistItemSchema>;
+export type DeleteChecklistItemArgs = z.infer<typeof DeleteChecklistItemSchema>;
+
+// ADDED: Tag types
+export type GetSpaceTagsArgs = z.infer<typeof GetSpaceTagsSchema>;
+export type AddTagToCardArgs = z.infer<typeof AddTagToCardSchema>;
+export type RemoveTagFromCardArgs = z.infer<typeof RemoveTagFromCardSchema>;
+export type UpdateCardTagsArgs = z.infer<typeof UpdateCardTagsSchema>;
+
+// ADDED: Board properties types
+export type GetBoardPropertiesArgs = z.infer<typeof GetBoardPropertiesSchema>;
+export type UpdateCardPropertiesArgs = z.infer<typeof UpdateCardPropertiesSchema>;
