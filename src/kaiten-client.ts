@@ -721,10 +721,12 @@ export class KaitenClient {
   // ============================================
 
   // Get all checklists for a card
+  // Get all checklists for a card
   async getCardChecklists(cardId: number, signal?: AbortSignal): Promise<KaitenChecklist[]> {
     return this.queuedRequest(async () => {
-      const response = await this.client.get(`/cards/${cardId}/checklists`, { signal });
-      return response.data;
+      // The checklists are included in the card object
+      const card = await this.client.get(`/cards/${cardId}`, { signal });
+      return (card.data as any).checklists || [];
     }, signal);
   }
 
@@ -753,7 +755,7 @@ export class KaitenClient {
     }, signal);
   }
 
-  // Create a checklist item - FIXED: URL is /checklists/{id}/items, not /cards/.../checklists/.../items
+  // Create a checklist item
   async createChecklistItem(
     checklistId: number,
     text: string,
@@ -765,34 +767,40 @@ export class KaitenClient {
     return this.queuedRequest(async () => {
       const key = idempotencyKey || this.generateIdempotencyKey();
       const headers = { 'Idempotency-Key': key };
-      const body: any = { text };
-      if (checked !== undefined) body.checked = checked;
-      if (sortOrder !== undefined) body.sort_order = sortOrder;
-      // FIXED: Correct endpoint from Python working code
+
+      const itemData: any = { text };
+      if (checked !== undefined) itemData.checked = checked;
+      if (sortOrder !== undefined) itemData.sort_order = sortOrder;
+
+      // API expects { items: [ itemData ] }
+      const body = { items: [itemData] };
+
       const response = await this.client.post(`/checklists/${checklistId}/items`, body, { headers, signal });
-      return response.data;
+      // Response might be the item or array of items? 
+      // Usually POST returns the created object or array. 
+      // Assuming array based on input structure, returning first item.
+      return Array.isArray(response.data) ? response.data[0] : response.data;
     }, signal);
   }
 
-  // Update a checklist item - FIXED: URL is /checklists/{id}/items/{item_id}
+  // Update a checklist item - REQUIRED: cardId
   async updateChecklistItem(
+    cardId: number,
     checklistId: number,
     itemId: number,
     params: { text?: string; checked?: boolean; sort_order?: number },
     signal?: AbortSignal
   ): Promise<KaitenChecklistItem> {
     return this.queuedRequest(async () => {
-      // FIXED: Correct endpoint pattern
-      const response = await this.client.patch(`/checklists/${checklistId}/items/${itemId}`, params, { signal });
+      const response = await this.client.patch(`/cards/${cardId}/checklists/${checklistId}/items/${itemId}`, params, { signal });
       return response.data;
     }, signal);
   }
 
-  // Delete a checklist item - FIXED: URL is /checklists/{id}/items/{item_id}
-  async deleteChecklistItem(checklistId: number, itemId: number, signal?: AbortSignal): Promise<void> {
+  // Delete a checklist item - REQUIRED: cardId
+  async deleteChecklistItem(cardId: number, checklistId: number, itemId: number, signal?: AbortSignal): Promise<void> {
     return this.queuedRequest(async () => {
-      // FIXED: Correct endpoint pattern
-      await this.client.delete(`/checklists/${checklistId}/items/${itemId}`, { signal });
+      await this.client.delete(`/cards/${cardId}/checklists/${checklistId}/items/${itemId}`, { signal });
     }, signal);
   }
 
@@ -808,10 +816,14 @@ export class KaitenClient {
     }, signal);
   }
 
-  // Add a tag to a card by tag_id
-  async addTagToCard(cardId: number, tagId: number, signal?: AbortSignal): Promise<void> {
+  // Add a tag to a card by tag_id or tag_name
+  async addTagToCard(cardId: number, tagId?: number, tagName?: string, signal?: AbortSignal): Promise<void> {
     return this.queuedRequest(async () => {
-      await this.client.post(`/cards/${cardId}/tags`, { tag_id: tagId }, { signal });
+      const body: any = {};
+      if (tagId !== undefined) body.tag_id = tagId;
+      if (tagName !== undefined) body.name = tagName;
+
+      await this.client.post(`/cards/${cardId}/tags`, body, { signal });
     }, signal);
   }
 

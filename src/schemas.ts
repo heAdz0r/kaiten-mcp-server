@@ -256,21 +256,21 @@ export const CreateChecklistItemSchema = z.object({
   idempotency_key: IdempotencyKeySchema,
 }).strict();
 
-// FIXED: card_id removed from API call - use /checklists/{id}/items/{item_id}
+// Update checklist item
 export const UpdateChecklistItemSchema = z.object({
-  card_id: z.number().positive().int().describe('The ID of the card (for reference only, not used in API call)'),
-  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
-  item_id: z.number().positive().int().describe('The ID of the checklist item'),
-  text: z.string().min(1).max(4096).optional().describe('New text content'),
-  checked: z.boolean().optional().describe('New checked state'),
-  sort_order: z.number().optional().describe('New position'),
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  checklist_id: z.number().positive().int().describe('Checklist ID'),
+  item_id: z.number().positive().int().describe('Checklist item ID'),
+  text: z.string().min(1).max(4096).optional().describe('Item text (1-4096 chars)'),
+  checked: z.boolean().optional().describe('Checked state'),
+  sort_order: z.number().optional().describe('Position in checklist'),
 }).strict();
 
-// FIXED: card_id removed from API call
+// Delete checklist item
 export const DeleteChecklistItemSchema = z.object({
-  card_id: z.number().positive().int().describe('The ID of the card (for reference only, not used in API call)'),
-  checklist_id: z.number().positive().int().describe('The ID of the checklist'),
-  item_id: z.number().positive().int().describe('The ID of the checklist item to delete'),
+  card_id: z.number().positive().int().describe('The ID of the card'),
+  checklist_id: z.number().positive().int().describe('Checklist ID'),
+  item_id: z.number().positive().int().describe('Checklist item ID'),
 }).strict();
 
 // ============================================
@@ -283,8 +283,11 @@ export const GetSpaceTagsSchema = z.object({
 
 export const AddTagToCardSchema = z.object({
   card_id: z.number().positive().int().describe('The ID of the card'),
-  tag_id: z.number().positive().int().describe('The ID of the tag to add'),
-}).strict();
+  tag_id: z.number().positive().int().optional().describe('The ID of the tag to add'),
+  name: z.string().optional().describe('The name of the tag to add'),
+}).strict().refine(data => data.tag_id || data.name, {
+  message: "Either tag_id or name must be provided",
+});
 
 export const RemoveTagFromCardSchema = z.object({
   card_id: z.number().positive().int().describe('The ID of the card'),

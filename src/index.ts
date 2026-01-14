@@ -165,11 +165,11 @@ function simplifyCard(card: KaitenCard): SimplifiedCard {
 
   const blockInfo = card.blocked && card.blockers && card.blockers.length > 0
     ? {
-        blocked: true,
-        block_reason: card.blockers[0].reason || null,
-        blocked_at: card.blockers[0].created || null,
-        blocker_name: card.blockers[0].blocker?.full_name || null
-      }
+      blocked: true,
+      block_reason: card.blockers[0].reason || null,
+      blocked_at: card.blockers[0].created || null,
+      blocker_name: card.blockers[0].blocker?.full_name || null
+    }
     : { blocked: false, block_reason: null, blocked_at: null, blocker_name: null };
 
   const lastCommentDate = card.comment_last_added_at || null;
@@ -3777,8 +3777,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (validatedArgs.checked !== undefined) params.checked = validatedArgs.checked;
         if (validatedArgs.sort_order !== undefined) params.sort_order = validatedArgs.sort_order;
 
-        // FIXED: card_id removed - API uses /checklists/{id}/items/{item_id}
+        // FIXED: card_id restored - API uses /cards/{card_id}/checklists/{checklist_id}/items/{item_id}
         const item = await kaitenClient.updateChecklistItem(
+          validatedArgs.card_id,
           validatedArgs.checklist_id,
           validatedArgs.item_id,
           params,
@@ -3796,8 +3797,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'kaiten_delete_checklist_item': {
         const validatedArgs = DeleteChecklistItemSchema.parse(args);
-        // FIXED: card_id removed - API uses /checklists/{id}/items/{item_id}
+        // FIXED: card_id restored - API uses /cards/{card_id}/checklists/{checklist_id}/items/{item_id}
         await kaitenClient.deleteChecklistItem(
+          validatedArgs.card_id,
           validatedArgs.checklist_id,
           validatedArgs.item_id,
           signal
@@ -3831,12 +3833,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'kaiten_add_tag_to_card': {
         const validatedArgs = AddTagToCardSchema.parse(args);
-        await kaitenClient.addTagToCard(validatedArgs.card_id, validatedArgs.tag_id, signal);
+        await kaitenClient.addTagToCard(validatedArgs.card_id, validatedArgs.tag_id, validatedArgs.name, signal);
         return {
           content: [
             {
               type: 'text' as const,
-              text: `Tag ${validatedArgs.tag_id} added to card ${validatedArgs.card_id} successfully`,
+              text: `Tag ${validatedArgs.name || validatedArgs.tag_id} added to card ${validatedArgs.card_id} successfully`,
             },
           ],
         };
